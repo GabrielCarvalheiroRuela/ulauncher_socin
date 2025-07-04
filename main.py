@@ -20,13 +20,26 @@ class KeywordQueryListener(EventListener):
         query = event.get_argument() or ""
         args = query.strip().split()
 
-        if not args:
+        if not args or args[0] == "":
+            # Sugestões ao digitar apenas "socin"
             return RenderResultListAction([
                 ExtensionResultItem(
                     icon='images/socin.png',
-                    name="Comandos: desliga, reinicia, cancela",
-                    description="Ex: socin desliga 5",
-                    on_enter=HideWindowAction()
+                    name="desliga [minutos]",
+                    description="Agenda o desligamento do computador após alguns minutos",
+                    on_enter=ExtensionCustomAction({"comando": "desliga"}, keep_app_open=True)
+                ),
+                ExtensionResultItem(
+                    icon='images/socin.png',
+                    name="reinicia [minutos]",
+                    description="Agenda a reinicialização do computador após alguns minutos",
+                    on_enter=ExtensionCustomAction({"comando": "reinicia"}, keep_app_open=True)
+                ),
+                ExtensionResultItem(
+                    icon='images/socin.png',
+                    name="cancela",
+                    description="Cancela qualquer desligamento ou reinicialização agendada",
+                    on_enter=ExtensionCustomAction({"comando": "cancela"}, keep_app_open=False)
                 )
             ])
 
@@ -37,20 +50,19 @@ class KeywordQueryListener(EventListener):
                 return RenderResultListAction([
                     ExtensionResultItem(
                         icon='images/socin.png',
-                        name="Tempo inválido",
-                        description="Ex: socin desliga 5",
+                        name=f"{comando} [minutos]",
+                        description="Informe o tempo em minutos. Ex: socin desliga 5",
                         on_enter=HideWindowAction()
                     )
                 ])
 
             minutos = int(args[1])
-            acao = "Desligar" if comando == 'desliga' else "Reiniciar"
 
             return RenderResultListAction([
                 ExtensionResultItem(
                     icon='images/socin.png',
-                    name=f"{acao} em {minutos} minuto(s)",
-                    description=f"O sistema será {acao.lower()}ado em {minutos} minuto(s).",
+                    name=f"{'Desligar' if comando == 'desliga' else 'Reiniciar'} em {minutos} minuto(s)",
+                    description=f"O sistema será {'desligado' if comando == 'desliga' else 'reiniciado'} em {minutos} minuto(s).",
                     on_enter=ExtensionCustomAction({
                         "comando": comando,
                         "minutos": minutos
@@ -63,7 +75,7 @@ class KeywordQueryListener(EventListener):
                 ExtensionResultItem(
                     icon='images/socin.png',
                     name="Cancelar agendamento",
-                    description="Cancelar desligamento ou reinício pendente",
+                    description="Cancela qualquer desligamento ou reinicialização pendente",
                     on_enter=ExtensionCustomAction({
                         "comando": "cancela"
                     }, keep_app_open=False)
@@ -75,7 +87,7 @@ class KeywordQueryListener(EventListener):
                 ExtensionResultItem(
                     icon='images/socin.png',
                     name="Comando inválido",
-                    description="Use: desliga, reinicia ou cancela",
+                    description="Comandos: desliga, reinicia, cancela",
                     on_enter=HideWindowAction()
                 )
             ])
@@ -85,22 +97,51 @@ class ItemEnterListener(EventListener):
     def on_event(self, event, extension):
         data = event.get_data()
         comando = data.get("comando")
+        minutos = data.get("minutos")
 
         try:
             if comando == 'desliga':
-                minutos = int(data.get("minutos", 0))
+
                 subprocess.run(["shutdown", "-h", f"+{minutos}"])
-
+                return RenderResultListAction([
+                    ExtensionResultItem(
+                        icon='images/socin.png',
+                        name="Desligamento agendado",
+                        description=f"O sistema será desligado em {minutos} minuto(s).",
+                        on_enter=HideWindowAction()
+                    )
+                ])
             elif comando == 'reinicia':
-                minutos = int(data.get("minutos", 0))
+                
                 subprocess.run(["shutdown", "-r", f"+{minutos}"])
-
+                return RenderResultListAction([
+                    ExtensionResultItem(
+                        icon='images/socin.png',
+                        name="Reinício agendado",
+                        description=f"O sistema será reiniciado em {minutos} minuto(s).",
+                        on_enter=HideWindowAction()
+                    )
+                ])
             elif comando == 'cancela':
                 subprocess.run(["shutdown", "-c"])
+                return RenderResultListAction([
+                    ExtensionResultItem(
+                        icon='images/socin.png',
+                        name="Agendamento cancelado",
+                        description="Nenhum desligamento ou reinício pendente.",
+                        on_enter=HideWindowAction()
+                    )
+                ])
         except Exception as e:
             print(f"Erro ao executar comando: {e}")
-
-        return HideWindowAction()
+            return RenderResultListAction([
+                ExtensionResultItem(
+                    icon='images/socin.png',
+                    name="Erro ao executar comando",
+                    description=str(e),
+                    on_enter=HideWindowAction()
+                )
+            ])
 
 
 if __name__ == '__main__':
