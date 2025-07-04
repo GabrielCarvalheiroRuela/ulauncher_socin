@@ -1,0 +1,18 @@
+{
+  "required_api_version": "^2.0.0",
+  "name": "Socin",
+  "description": "Automação de ações",
+  "developer_name": "Gabriel Carvalheiro Ruela",
+  "icon": "images/socin.png",
+  "options": {
+    "query_debounce": 0.01
+  },
+  "preferences": [
+    {
+      "id": "keyword",
+      "type": "keyword",
+      "name": "Comando principal",
+      "default_value": "socin"
+    }
+  ]
+}
